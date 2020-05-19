@@ -26,7 +26,7 @@ ThreadSorting::ThreadSorting() {}
  * @param len
  * @return
  */
-vector<int> ThreadSorting::readFromFile(vector<int> nums, int len) {
+vector<int> ThreadSorting::readFromFile(vector<int> nums) {
     ifstream isObj(filename);
     if (!isObj) {
         cout << "Failed to open file" << endl;
@@ -190,7 +190,7 @@ void * ThreadSorting::computation(void *r) {
 
     // Read values from the file
     vector<int> nums;
-    nums = readFromFile(nums, len);
+    nums = readFromFile(nums);
 
     // iterate through the vector
     int idx = 0;
@@ -223,14 +223,7 @@ void * ThreadSorting::computation(void *r) {
 
     // Thread manager
     // TODO: use a thread and maybe move it to the main function
-    bool stop = isSorted(arr, len);
-    if (stop) {
-        cout << "Simulation terminated " << endl;
-        exit(2);
-    } else {
-        void* r;
-        computation(r);
-    }
+
     return (void*)0;
 }
 
@@ -238,15 +231,28 @@ void * ThreadSorting::computation(void *r) {
  * Checks whether the list is completely sorted
  * @return
  */
-bool ThreadSorting::isSorted(int arr[], int len) {
+void* ThreadSorting::isSorted(void * s) {
     pthread_mutex_lock(&lock);
-    if (len == 0 || len == 1) { return true; }
-    for (int i = 1; i < len; i++) {
+    bool stop = false;
+    vector<int> wholeArray;
+    wholeArray = readFromFile(wholeArray);
+
+    if (wholeArray.size() == 0 || wholeArray.size() == 1) { exit(3); }
+    for (int i = 1; i < wholeArray.size(); i++) {
         // Unsorted pair found
-        if (arr[i - 1] > arr[i]) { return false; }
+        if (wholeArray.at(i - 1) > wholeArray.at(i)) { stop = true; }
     }
+    // Check condition
+    if (stop) {
+        cout << "Simulation terminated " << endl;
+        exit(2);
+    } else {
+        void* r;
+        computation(r);
+    }
+
     pthread_mutex_unlock(&lock);
-    return true;
+    return (void*) 0;
 }
 
 /**
@@ -278,11 +284,12 @@ int ThreadSorting::main(int n) {
 
     // Start the M threads
     thread_t threads[M];
-    pthread_attr_t attr;
+    thread_t thread_manager;
 
+    pthread_create(&thread_manager, NULL, isSorted,(void*) 0);
     // Create the threads
     for (int i = 0; i < M; i++) {
-        pthread_create(&threads[i], 0, computation, (void*) (long) i);
+        pthread_create(&threads[i], NULL, computation, (void*) i);
     }
 
     // Wait for the threads to finish
@@ -290,6 +297,7 @@ int ThreadSorting::main(int n) {
         pthread_join(threads[i], NULL);
     }
 
+    pthread_join(thread_manager, NULL);
     pthread_mutex_destroy(&lock);
     return 0;
 }

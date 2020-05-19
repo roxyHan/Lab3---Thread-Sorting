@@ -12,7 +12,7 @@ class ThreadSorting {
 
 public:
     ThreadSorting();
-    static bool isSorted(int arr[], int len);
+    static void* isSorted(void * m);
     static int* generatePair(int x);
 
     static void swap(int* p1, int* p2);
@@ -22,7 +22,7 @@ public:
     static int* insertsort(int* arr, int x);
     static int* bubblesort(int* arr, int x);
 
-    static std::vector<int> readFromFile(std::vector<int> arr, int len);
+    static std::vector<int> readFromFile(std::vector<int> arr);
     static void writeToFile(std::vector<int> xchar, int len);
 
 
