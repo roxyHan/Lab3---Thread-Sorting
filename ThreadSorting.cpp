@@ -6,35 +6,63 @@
 #include <iostream>
 #include <thread_db.h>
 #include <fstream>
+#include <vector>
+#include <cstring>
 
 
 using namespace std;
 
 int n1;
+string filename = "numbers.txt";
+pthread_mutex_t lock;
 
-ThreadSorting::ThreadSorting() {
-}
 
+/* Constructor */
+ThreadSorting::ThreadSorting() {}
 
-char& ThreadSorting::readFromFile(char *arr, int len) {
-    ifstream isObj("numbers.txt");
+/**
+ * Reads from the file
+ * @param nums
+ * @param len
+ * @return
+ */
+vector<int> ThreadSorting::readFromFile(vector<int> nums, int len) {
+    ifstream isObj(filename);
     if (!isObj) {
         cout << "Failed to open file" << endl;
     }
-    isObj.read(arr, len);
+
+    string c;
+    while (isObj >> c) {
+        int current = stoi(c);
+        nums.push_back(current);
+    }
     isObj.close();
-    return *arr;
+    return nums;
 }
 
-void ThreadSorting::writeToFile(char* arr, int len) {
+/**
+ * Writes to the file
+ * @param nums
+ * @param len
+ */
+void ThreadSorting::writeToFile(vector<int> nums, int len) {
     ofstream osObj("numbers.txt");
     if (!osObj) {
         cout << "Issue with accessing the file" << endl;
     }
-    osObj.write(arr, len);
+
+    osObj.clear();
+    vector<int>::iterator it;
+    for (it = nums.begin(); it != nums.end(); ++it) {
+        int current = *it;
+        string str = to_string(current);
+        osObj << str;
+        osObj << "\t";
+    }
+    // Close the file
     osObj.close();
 }
-
 
 
 /**
@@ -67,12 +95,10 @@ int ThreadSorting::partition(int arr[], int low, int high) {
     int pivot = arr[high];    // pivot
     int i = (low - 1);
 
-    for (int j = low; j <= high- 1; j++)
-    {
+    for (int j = low; j <= high- 1; j++) {
         //if current element is smaller than pivot, increment the low element
         //swap elements at i and j
-        if (arr[j] <= pivot)
-        {
+        if (arr[j] <= pivot) {
             i++;    // increment index of smaller element
             swap(&arr[i], &arr[j]);
         }
@@ -151,19 +177,27 @@ int * ThreadSorting::bubblesort(int* arr, int len) {
  */
 void * ThreadSorting::computation(void *r) {
     // Generates a random pair of numbers ranging from 0 to n
-    int* pair;
+    pthread_mutex_lock(&lock);
+
+    int* pair = new int[2];
     pair = generatePair(n1);
-    int i = *(pair + 0);
-    int j = *(pair + 1);
-    char *array = nullptr;
+    //int i = *(pair + 0);
+    //int j = *(pair + 1);
+    int i = 0;
+    int j = 3;
     int len = (j - i) + 1;
     int arr[len];
 
     // Read values from the file
-    readFromFile(array, len);
+    vector<int> nums;
+    nums = readFromFile(nums, len);
 
-    for (int a = 0; a < len; a++) {
-        arr[a] = atoi(reinterpret_cast<const char*>(array[a]));
+    // iterate through the vector
+    int idx = 0;
+    for (int a = i; a <= j; a++) {
+        arr[idx] = nums.at(a);
+        //cout << "the current number is: " << arr[idx] << endl;
+        idx++;
     }
     // Randomly select which sorting algorithm to use between
     // a) quick sort , b) insert sort, and c) bubble sort
@@ -183,7 +217,20 @@ void * ThreadSorting::computation(void *r) {
         }
     }
     // Write sorted values to the file
+    vector<int> convertedArray(arr, arr + len);
+    writeToFile(convertedArray, len);
+    pthread_mutex_unlock(&lock);
 
+    // Thread manager
+    // TODO: use a thread and maybe move it to the main function
+    bool stop = isSorted(arr, len);
+    if (stop) {
+        cout << "Simulation terminated " << endl;
+        exit(2);
+    } else {
+        void* r;
+        computation(r);
+    }
     return (void*)0;
 }
 
@@ -191,37 +238,43 @@ void * ThreadSorting::computation(void *r) {
  * Checks whether the list is completely sorted
  * @return
  */
-bool ThreadSorting::isSorted() {
-    bool flag = false;
-    //
-    if (!flag) {
-
+bool ThreadSorting::isSorted(int arr[], int len) {
+    pthread_mutex_lock(&lock);
+    if (len == 0 || len == 1) { return true; }
+    for (int i = 1; i < len; i++) {
+        // Unsorted pair found
+        if (arr[i - 1] > arr[i]) { return false; }
     }
-    else { // Generate a new pair (i, j)
-        int* pair;
-        pair = generatePair(n1);
-        int i = *(pair + 0);
-        int j = *(pair + 1);
-    }
+    pthread_mutex_unlock(&lock);
     return true;
 }
 
+/**
+ * Main function for the program
+ * @param n command line argument for the number of elements
+ * @return
+ */
 int ThreadSorting::main(int n) {
     n1 = n;
-    char arr[n1];
+    string arr[n1];
     srand(time(NULL));
+    vector<int> numbersGenerated;
     for (int o = 0; o < n1; o++) {
-        int a = rand() % 100 ;
-        arr[o] = '0' + a + '\t';
+        int number = rand() % 100 ;
+        numbersGenerated.push_back(number);
     }
-    writeToFile(arr, n1);
-
+    writeToFile(numbersGenerated, n1);
 
     // Get the number of threads
     string threadsCount;
     cout << "Enter the number of threads: " << endl;
     getline(cin, threadsCount);
     int M = stoi(threadsCount);
+
+    if (pthread_mutex_init(&lock, NULL) != 0) {
+        printf("\n mutex init has failed\n");
+        return 1;
+    }
 
     // Start the M threads
     thread_t threads[M];
@@ -237,7 +290,6 @@ int ThreadSorting::main(int n) {
         pthread_join(threads[i], NULL);
     }
 
-
-
+    pthread_mutex_destroy(&lock);
     return 0;
 }

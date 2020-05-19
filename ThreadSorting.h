@@ -6,12 +6,13 @@
 #define LAB3_THREADSORTING_H
 
 #include <string>
+#include <vector>
 
 class ThreadSorting {
 
 public:
     ThreadSorting();
-    static bool isSorted();
+    static bool isSorted(int arr[], int len);
     static int* generatePair(int x);
 
     static void swap(int* p1, int* p2);
@@ -21,8 +22,8 @@ public:
     static int* insertsort(int* arr, int x);
     static int* bubblesort(int* arr, int x);
 
-    static char& readFromFile(char* arr, int len);
-    static void writeToFile(char* arr, int len);
+    static std::vector<int> readFromFile(std::vector<int> arr, int len);
+    static void writeToFile(std::vector<int> xchar, int len);
 
 
     static void* computation(void* r);
