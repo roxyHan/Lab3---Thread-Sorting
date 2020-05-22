@@ -12,6 +12,7 @@ class ThreadSorting {
 
 public:
     ThreadSorting();
+    static void infinite();
     static void* isSorted(void * m);
     static int* generatePair(int x);
 
