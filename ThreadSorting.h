@@ -12,10 +12,10 @@ class ThreadSorting {
 
 public:
     ThreadSorting();
-    static void infinite();
     static bool sortedList();
     static void* isSorted(void * m);
     static int* generatePair(int x);
+    static bool inputCheck(std::string word);
 
     static void swap(int* p1, int* p2);
     static int partition(int arr[], int low, int high);
@@ -26,7 +26,6 @@ public:
 
     static std::vector<int> readFromFile(std::vector<int> arr, int start , int end);
     static void writeToFile(std::vector<int> xchar);
-
 
     static void* computation(void* r);
     int main(int n);

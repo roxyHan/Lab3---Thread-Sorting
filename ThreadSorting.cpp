@@ -9,6 +9,9 @@
 #include <vector>
 #include <cstring>
 #include <mutex>
+#include <climits>
+#include <unistd.h>
+#include <syscall.h>
 
 
 using namespace std;
@@ -25,9 +28,10 @@ pthread_mutex_t lock2;
 ThreadSorting::ThreadSorting() {}
 
 /**
- * Reads from the file
+ * Reads elements in a given range from the file
  * @param nums
- * @param len
+ * @param start
+ * @param end
  * @return
  */
 vector<int> ThreadSorting::readFromFile(vector<int> nums, int start, int end) {
@@ -98,12 +102,11 @@ void ThreadSorting::swap(int* pointer1, int* pointer2) {
 }
 
 int ThreadSorting::partition(int arr[], int low, int high) {
-    int pivot = arr[high];    // pivot
+    int pivot = arr[high];
     int i = (low - 1);
-
     for (int j = low; j <= high- 1; j++) {
         if (arr[j] <= pivot) {
-            i++;    // increment index of smaller element
+            i++;
             swap(&arr[i], &arr[j]);
         }
     }
@@ -119,8 +122,8 @@ int ThreadSorting::partition(int arr[], int low, int high) {
  */
 void ThreadSorting::quicksort(int arr[], int low, int high) {
     if (low < high) {
-        //partition the array
         int pivot = partition(arr, low, high);
+
         //sort the sub arrays independently
         quicksort(arr, low, pivot - 1);
         quicksort(arr, pivot + 1, high);
@@ -178,6 +181,7 @@ void * ThreadSorting::computation(void *r) {
     int i = pair[0];
     int j = pair[1];
 
+    //cout << "\nThread " << syscall(SYS_gettid)  << endl;
     cout << "\nPair (i, j) = (" << i << ", " << j << ")" << endl;
     int len = (j - i) + 1;
     int arr[len];
@@ -230,8 +234,7 @@ void * ThreadSorting::computation(void *r) {
     readValues.clear();
     cout << "\nArray after sorting in range (i, j): ";
     display(0, totalCount -1);
-
-
+    // -----------------------------------------------------------------------------------
     // Thread manager
     thread_t manager;
     pthread_create(&manager, 0, isSorted, (void*) (long) 0);
@@ -244,7 +247,6 @@ void * ThreadSorting::computation(void *r) {
 bool ThreadSorting::sortedList() {
     vector<int> wholeArray;
     wholeArray = readFromFile(wholeArray, 0, totalCount -1);
-
     if (wholeArray.size() == 0 || wholeArray.size() == 1) {
         return true;
     }
@@ -275,7 +277,29 @@ void* ThreadSorting::isSorted(void * s) {
     pthread_mutex_unlock(&lock1);
     return (void*) 0;
 }
-
+/**
+ * Checks if a valid input was provided
+ * @param input
+ * @return
+ */
+bool ThreadSorting::inputCheck(string input) {
+    // Check for wrong input type
+    if (input.length() == 0 || input.length() > 7) {
+        cout << "Please provide a positive integer." << endl;
+        return false;
+    }
+    for (int idx = 0; idx < input.length(); ++idx) {
+        if (!isdigit(input[idx])) {
+            std::cout << "Please only provide a positive integer." << std::endl;
+            return false;
+        }
+    }
+    if (stoi(input) == 0) {
+        cout << "The number of threads should be greater than 0."<< endl;
+        return false;
+    }
+    return true;
+}
 
 /**
  * Main function for the program
@@ -287,16 +311,22 @@ int ThreadSorting::main(int n) {
     string threadsCount;
     cout << "Enter the number of threads: " << endl;
     getline(cin, threadsCount);
-    M = stoi(threadsCount);
+    bool input = inputCheck(threadsCount);
 
+    while (!input) {
+        cout << "Enter the number of threads: " << endl;
+        getline(cin, threadsCount);
+        input = inputCheck(threadsCount);
+    }
+    M = stoi(threadsCount);
     totalCount = n;
     vector<int> numbersGenerated;
     for (int o = 0; o < totalCount; o++) {
-        int number = rand() % 100 ;
+        int number = rand() % 1000 ;
         numbersGenerated.push_back(number);
     }
     writeToFile(numbersGenerated);
-    cout << "Array before starting the sorting process: ";
+    cout << "\nArray before starting the sorting process: ";
     display(0, totalCount -1);
     cout << "------------------------------------->" << endl;
 
