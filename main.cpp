@@ -2,7 +2,6 @@
 #include "ThreadSorting.h"
 
 int main(int argc, char* argv[]) {
-    std::cout << "" << std::endl;
     srand(time(NULL));
     if (argc != 2) {
         std::cout << "The number 'n' needs to be provided!" << std::endl;
