@@ -13,14 +13,13 @@
 
 using namespace std;
 
-//int counter = 0;
+
 int totalCount;
 int M;
 string filename = "numbers.txt";
 bool stop = false;
 pthread_mutex_t lock1;
 pthread_mutex_t lock2;
-pthread_mutex_t lock3;
 
 /* Constructor */
 ThreadSorting::ThreadSorting() {}
@@ -36,7 +35,6 @@ vector<int> ThreadSorting::readFromFile(vector<int> nums, int start, int end) {
     if (!isObj) {
         cout << "Failed to open file" << endl;
     }
-
     string c;
     int position = 0;
     while (isObj >> c) {
@@ -60,7 +58,6 @@ void ThreadSorting::writeToFile(vector<int> nums) {
     if (!osObj) {
         cout << "Issue with accessing the file" << endl;
     }
-
     osObj.clear();
     vector<int>::iterator it;
     for (it = nums.begin(); it != nums.end(); ++it) {
@@ -69,7 +66,6 @@ void ThreadSorting::writeToFile(vector<int> nums) {
         osObj << str;
         osObj << "\t";
     }
-
     // Close the file
     osObj.close();
 }
@@ -175,22 +171,13 @@ int * ThreadSorting::bubblesort(int* arr, int len) {
  * @return
  */
 void * ThreadSorting::computation(void *r) {
-    // Generates a random pair of numbers ranging from 0 to n
     pthread_mutex_lock(&lock2);
 
+    // Generates a random pair of numbers ranging from 0 to n
     int* pair = generatePair(totalCount);
     int i = pair[0];
     int j = pair[1];
-  /**  int i = 0;
-    int j = 1;
-    if  (counter == 1) {
-        i = 1;
-        j = 2;
-    }
-    else if (counter == 2) {
-        i = 2;
-        i = 3;
-    }*/
+
     cout << "\nPair (i, j) = (" << i << ", " << j << ")" << endl;
     int len = (j - i) + 1;
     int arr[len];
@@ -243,7 +230,12 @@ void * ThreadSorting::computation(void *r) {
     readValues.clear();
     cout << "\nArray after sorting in range (i, j): ";
     display(0, totalCount -1);
-    isSorted(0);
+
+
+    // Thread manager
+    thread_t manager;
+    pthread_create(&manager, 0, isSorted, (void*) (long) 0);
+    pthread_join(manager, NULL);
 
     pthread_mutex_unlock(&lock2);
     return (void*)0;
@@ -277,40 +269,13 @@ void* ThreadSorting::isSorted(void * s) {
         cout << "\n------------------------------------->" << endl;
         cout << "Array at the end of the sorting process: " ;
         display(0, totalCount-1);
-        cout << "Simulation terminated " << endl;
+        cout << "Simulation completed " << endl;
         exit(2);
-    } else {
-        /**if (pthread_mutex_init(&lock3, NULL) != 0) {
-            printf("\n mutex init has failed\n");
-            exit(2);
-        }*/
-        //pthread_mutex_lock(&lock3);
-
-        // Create the threads
-        if (stop == true) {
-
-        }
-        pthread_mutex_unlock(&lock3);
     }
-
     pthread_mutex_unlock(&lock1);
     return (void*) 0;
 }
 
-/**
-void ThreadSorting::infinite() {
-    while(true)
-    {
-        {
-            unique_lock<mutex> lock(Queue_Mutex);
-
-            condition.wait(lock, []{return !Queue.empty() || terminate_pool});
-            Job = Queue.front();
-            Queue.pop();
-        }
-        Job(); // function<void()> type
-    }
-}*/
 
 /**
  * Main function for the program
@@ -337,25 +302,17 @@ int ThreadSorting::main(int n) {
 
 
     if (pthread_mutex_init(&lock1, NULL) != 0) {
-        printf("\n mutex init has failed\n");
+        printf("\n mutex init has failed for lock 1\n");
         return 1;
     }
-
     if (pthread_mutex_init(&lock2, NULL) != 0) {
-        printf("\n mutex init has failed\n");
+        printf("\n mutex init has failed for lock 2\n");
         return 1;
     }
-    /**
-    vector<thread_t> Pool;
-    for (int x = 0; x < M; x++) {
-        Pool.push_back(thread_t());
-    }*/
 
     // Start the M threads
-    //thread_t thread_manager;
     thread_t threads[M];
 
-    int d;
     while (!stop) {
         for (int i = 0; i < M; i++) {
             pthread_create(&threads[i], NULL, computation, (void *) (long) i);
@@ -364,10 +321,7 @@ int ThreadSorting::main(int n) {
         for (int i = 0; i < M; i++) {
             pthread_join(threads[i], NULL);
         }
-        //pthread_create(&thread_manager, 0, isSorted,(void*) (long)d);
     }
-//    pthread_join(thread_manager, NULL);
-
     pthread_mutex_destroy(&lock1);
     pthread_mutex_destroy(&lock2);
     return 0;
